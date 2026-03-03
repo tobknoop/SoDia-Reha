@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FCE – Sortieraufgabe (mobil) mit Studienvergleich</title>
+  <!-- Mobile-taugliches Sortieren -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <!-- Diagramm -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <style>
+    :root{
+      --user:#0078d4;  /* Blau */
+      --med:#4b0082;   /* Dunkellila */
+      --ber:#7dcfe0;   /* Hellblau */
+      --bg:#f6f8fa;
+      --text:#111;
+    }
+    html,body{height:100%;}
+    body{font-family: Arial, Helvetica, sans-serif; color:var(--text); background:#fff; margin:0;}
+    .container{max-width: 980px; margin: 0 auto; padding: 20px 12px 28px;}
+
+    /* Header mit Logo oben rechts */
+    .header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px;}
+    .title-block h1{font-size: 1.25rem; margin: 0 0 8px 0;}
+    .title-block p.lead{margin:0; color:#333;}
+    .logo-link{display:inline-block;}
+    .logo-link img{max-height:56px; width:auto; height:auto; display:block; object-fit:contain;}
+    @media (max-width: 600px){
+      .logo-link img{max-height:44px;}
+    }
+
+    /* Sortierbereich */
+    #sortArea{background:#fff;}
+    #itemList{list-style:none; padding:0; margin: 16px 0;}
+    #itemList li{display:flex; align-items:center; gap:12px; padding:14px; margin:10px 0; background:#f2f2f2; border:1px solid #dcdcdc; border-radius:10px; font-size:16px; -webkit-user-select:none; user-select:none;}
+    .rank-badge{min-width:34px; height:34px; border-radius:50%; background:var(--user); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;}
+    #submitBtn{display:block; width:100%; background:var(--user); color:#fff; border:0; border-radius:10px; padding:14px 16px; font-size:17px; font-weight:600; cursor:pointer;}
+    #submitBtn:active{transform: translateY(1px);}
+    .hidden{display:none !important;}
+
+    /* Ergebnisbereich */
+    #result{display:none; background:var(--bg); border-radius:12px; padding:16px;}
+    #userOrder ol{margin: 6px 0 16px; padding-left: 20px;}
+    .legend{display:flex; gap:16px; align-items:center; flex-wrap: wrap; margin: 6px 0 8px;}
+    .swatch{width:14px; height:14px; border-radius:3px; display:inline-block; margin-right:6px}
+    .cmp-item{background:#fff; border-left:4px solid #e6e6e6; padding:10px 12px; margin:10px 0; border-radius:8px; font-size:15px;}
+    .cmp-item strong{display:block; margin-bottom:4px}
+    .muted{color:#666; font-size:13px}
+    canvas{max-width:100%;}
+
+    /* Mobile Tweaks */
+    @media (max-width: 600px){
+      #itemList li{padding:12px; gap:10px; font-size:15px;}
+      .rank-badge{min-width:30px; height:30px; font-size:13px;}
+      #submitBtn{font-size:16px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="title-block">
+        <h1>Bitte sortieren Sie die folgenden Aussagen nach ihrer Bedeutung in Ihrer täglichen Arbeit.</h1>
+        <p class="lead">Ziehen Sie die Elemente per Touch/Drag in die gewünschte Reihenfolge. Am Ende sehen Sie Ihr persönliches Ranking, ein Balkendiagramm und eine kurze Einordnung je Item.</p>
+      </div>
+      <a class="logo-link" href="https://www.haw-hamburg.de/forschung/forschungsprojekte-detail/project/project/show/sodia-reha/" target="_blank" rel="noopener" aria-label="Zum Projekt SoDia-Reha an der HAW Hamburg">
+        <img src="https://www.haw-hamburg.de/fileadmin/_processed_/c/a/csm_Logo_SoDia_16zu9_quer_Mariam_Arouna_59fcc747a0.png" alt="SoDia‑Reha Projektlogo" loading="lazy" />
+      </a>
+    </header>
+
+    <!-- Sortierbereich (wird auf Ergebnis ausgeblendet) -->
+    <section id="sortArea">
+      <ul id="itemList">
+        <li><div class="rank-badge">1</div><span>Erkenntnisse aus der Forschung</span></li>
+        <li><div class="rank-badge">2</div><span>Vorgaben meines Arbeitgebers</span></li>
+        <li><div class="rank-badge">3</div><span>Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team</span></li>
+        <li><div class="rank-badge">4</div><span>Vorgaben des jeweiligen Kostenträgers</span></li>
+        <li><div class="rank-badge">5</div><span>Professionelle Werte</span></li>
+        <li><div class="rank-badge">6</div><span>Interessen und Anliegen der Rehabilitand*innen</span></li>
+      </ul>
+      <button id="submitBtn" type="button">Reihenfolge anzeigen</button>
+    </section>
+
+    <!-- Ergebnisse -->
+    <section id="result">
+      <div id="userOrder"></div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--user)"></span>Ihre Bewertung</span>
+        <span><span class="swatch" style="background:var(--med)"></span>Medizinische Reha</span>
+        <span><span class="swatch" style="background:var(--ber)"></span>Berufliche Reha</span>
+      </div>
+      <p class="muted">Im Diagramm bedeutet ein <strong>höherer Balken</strong> eine <strong>höhere Priorität</strong>. Dafür wird der Rang in einen Score umgerechnet: <code>Score = 7 − Rang</code>.</p>
+      <canvas id="chart" height="240"></canvas>
+      <h3>Kurze Einordnung pro Item</h3>
+      <div id="comparisons"></div>
+    </section>
+  </div>
+
+  <script>
+    // --- Mobile-/Desktop-Sortierung mit SortableJS ---
+    const listEl = document.getElementById('itemList');
+    const sortable = new Sortable(listEl, {
+      animation: 150,
+      ghostClass: 'ghost',
+      onEnd: function(){
+        // Ränge neu nummerieren
+        [...listEl.children].forEach((li, i)=>{
+          const badge = li.querySelector('.rank-badge');
+          if(badge) badge.textContent = i+1;
+        });
+      }
+    });
+
+    // --- Studienränge (1 = wichtigste Priorität) ---
+    const medRank = {
+      'Interessen und Anliegen der Rehabilitand*innen': 1,
+      'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team': 2,
+      'Professionelle Werte': 3,
+      'Vorgaben des jeweiligen Kostenträgers': 4,
+      'Vorgaben meines Arbeitgebers': 5,
+      'Erkenntnisse aus der Forschung': 6
+    };
+    const berRank = {
+      'Interessen und Anliegen der Rehabilitand*innen': 1,
+      'Vorgaben des jeweiligen Kostenträgers': 2,
+      'Professionelle Werte': 3,
+      'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team': 4,
+      'Vorgaben meines Arbeitgebers': 5,
+      'Erkenntnisse aus der Forschung': 6
+    };
+
+    // Hilfsfunktionen
+    const rankToScore = r => 7 - r; // höherer Balken = wichtiger
+    function sentence(item, ur){
+      const mr = medRank[item];
+      const br = berRank[item];
+      if(ur === mr && ur === br) return `Ihre Platzierung (${ur}) deckt sich mit beiden Studien.`;
+      if(ur < mr && ur < br)     return `Sie priorisieren dieses Item <strong>höher</strong> als beide Studien.`;
+      if(ur > mr && ur > br)     return `Sie priorisieren dieses Item <strong>niedriger</strong> als beide Studien.`;
+      const vsMed = ur === mr ? 'entspricht' : (ur < mr ? 'liegt über' : 'liegt unter');
+      const vsBer = ur === br ? 'entspricht' : (ur < br ? 'liegt über' : 'liegt unter');
+      return `Ihre Platzierung (${ur}) ${vsMed} der medizinischen Reha und ${vsBer} der beruflichen Reha.`;
+    }
+
+    let chartInstance = null;
+    document.getElementById('submitBtn').addEventListener('click', ()=>{
+      const items = [...document.querySelectorAll('#itemList li span')].map(s=>s.textContent.trim());
+
+      // Sortierbereich sicher ausblenden (robust auf Mobilgeräten)
+      document.getElementById('sortArea').classList.add('hidden');
+      // Ergebnisbereich anzeigen
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+      // nach oben scrollen (Mobile)
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Reihenfolge (ohne Nummern) anzeigen
+      document.getElementById('userOrder').innerHTML = '<h3>Ihre Reihenfolge</h3><ol>' + items.map(i=>`<li>${i}</li>`).join('') + '</ol>';
+
+      // Diagrammdaten
+      const userData = items.map((_,i)=> rankToScore(i+1));
+      const medData  = items.map(it=> rankToScore(medRank[it]));
+      const berData  = items.map(it=> rankToScore(berRank[it]));
+
+      const ctx = document.getElementById('chart').getContext('2d');
+      if(chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: items,
+          datasets: [
+            { label: 'Ihre Bewertung', data: userData, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--user').trim() },
+            { label: 'Medizinische Reha', data: medData, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--med').trim() },
+            { label: 'Berufliche Reha', data: berData, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--ber').trim() }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          scales: {
+            x: {
+              beginAtZero: true,
+              min: 0, max: 6,
+              ticks: { stepSize: 1 },
+              title: { display:true, text:'Score (6 = höchste Priorität, 1 = niedrigste)' }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (ctx)=>{
+                  const label = ctx.dataset.label || '';
+                  const item = ctx.label;
+                  let rank;
+                  if(label==='Ihre Bewertung') rank = items.indexOf(item)+1;
+                  else if(label==='Medizinische Reha') rank = medRank[item];
+                  else rank = berRank[item];
+                  const score = rankToScore(rank);
+                  return `${label}: Rang ${rank} (Score ${score})`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Einordnungstexte
+      const cmpDiv = document.getElementById('comparisons');
+      cmpDiv.innerHTML = '';
+      items.forEach((it, idx)=>{
+        const ur = idx+1;
+        const mr = medRank[it];
+        const br = berRank[it];
+        const txt = sentence(it, ur);
+        const card = `
+          <div class=\"cmp-item\">
+            <strong>${it}</strong>
+            <div>${txt}</div>
+            <div class=\"muted\">Ihre Platzierung: ${ur} · Medizinische Reha: ${mr} · Berufliche Reha: ${br}</div>
+          </div>`;
+        cmpDiv.insertAdjacentHTML('beforeend', card);
+      });
+    });
+  </script>
+</body>
+</html>
