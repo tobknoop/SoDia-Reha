@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>FCE – Sortieraufgabe mit Studienvergleich und Diagramm</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+ body {font-family: Arial; max-width: 900px; margin: 40px auto;}
+ #itemList li {display:flex;align-items:center;gap:12px;padding:12px;margin:8px 0;background:#f2f2f2;border-radius:6px;cursor:grab;}
+ .rank-badge{width:32px;height:32px;border-radius:50%;background:#0078d4;color:white;display:flex;justify-content:center;align-items:center;font-weight:bold;}
+ #result{margin-top:30px;padding:15px;background:#eef7ff;border-radius:6px;display:none;}
+ canvas{max-width:800px;margin-top:20px;}
+</style>
+</head>
+<body>
+<h1>Sortieraufgabe und Vergleich mit Studien</h1>
+<p>Ziehen Sie die Elemente per Drag‑and‑Drop in die gewünschte Reihenfolge:</p>
+<ul id="itemList">
+ <li draggable="true"><div class='rank-badge'>1</div><span>Erkenntnisse aus der Forschung</span></li>
+ <li draggable="true"><div class='rank-badge'>2</div><span>Vorgaben meines Arbeitgebers</span></li>
+ <li draggable="true"><div class='rank-badge'>3</div><span>Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team</span></li>
+ <li draggable="true"><div class='rank-badge'>4</div><span>Vorgaben des jeweiligen Kostenträgers</span></li>
+ <li draggable="true"><div class='rank-badge'>5</div><span>Professionelle Werte</span></li>
+ <li draggable="true"><div class='rank-badge'>6</div><span>Interessen und Anliegen der Rehabilitand*innen</span></li>
+</ul>
+<button id="submitBtn">Reihenfolge anzeigen</button>
+<div id="result"></div>
+<canvas id="chart"></canvas>
+<script>
+ const list=document.getElementById('itemList'); let draggedItem=null;
+ function renumber(){[...list.children].forEach((li,i)=>li.querySelector('.rank-badge').textContent=i+1);} 
+ list.addEventListener('dragstart',e=>{draggedItem=e.target;e.target.style.opacity=0.5});
+ list.addEventListener('dragend',e=>e.target.style.opacity=1);
+ list.addEventListener('dragover',e=>{e.preventDefault(); const el=[...list.children].find(c=>{const r=c.getBoundingClientRect();return e.clientY<r.top+r.height/2}); list.insertBefore(draggedItem,el); renumber();});
+
+ document.getElementById('submitBtn').addEventListener('click',()=>{
+   const items=[...document.querySelectorAll('#itemList li span')].map(s=>s.textContent.trim());
+   const result=document.getElementById('result'); result.style.display='block';
+   let html='<h3>Ihre Reihenfolge:</h3><ol>'+items.map(i=>`<li>${i}</li>`).join('')+'</ol>';
+
+   const medRank={
+     'Interessen und Anliegen der Rehabilitand*innen':1,
+     'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team':2,
+     'Professionelle Werte':3,
+     'Vorgaben des jeweiligen Kostenträgers':4,
+     'Vorgaben meines Arbeitgebers':5,
+     'Erkenntnisse aus der Forschung':6
+   };
+   const berRank={
+     'Interessen und Anliegen der Rehabilitand*innen':1,
+     'Vorgaben des jeweiligen Kostenträgers':2,
+     'Professionelle Werte':3,
+     'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team':4,
+     'Vorgaben meines Arbeitgebers':5,
+     'Erkenntnisse aus der Forschung':6
+   };
+
+   html += '<h3>Interpretation:</h3>';
+   html += '<p>Im Folgenden sehen Sie einen Vergleich Ihres persönlichen Rankings mit den Ergebnissen der Studien zur medizinischen und beruflichen Rehabilitation. Die Balken zeigen, wie die einzelnen Aspekte dort bewertet wurden (1 = wichtigste Priorität). Ihr eigenes Ranking wird zusätzlich erläutert.</p>';
+
+   result.innerHTML = html;
+
+   const userRanks = items.map((i,index)=>({item:i,rank:index+1}));
+
+   const labels = items;
+   const medData = items.map(i=>medRank[i]);
+   const berData = items.map(i=>berRank[i]);
+   const userData = items.map((i,index)=>index+1);
+
+   new Chart(document.getElementById('chart'),{
+     type:'bar',
+     data:{
+       labels:labels,
+       datasets:[
+         {label:'Ihre Bewertung',data:userData,backgroundColor:'#0078d4'},
+         {label:'Medizinische Rehabilitation',data:medData,backgroundColor:'#4b0082'},
+         {label:'Berufliche Rehabilitation',data:berData,backgroundColor:'#7dcfe0'}
+       ]
+     },
+     options:{indexAxis:'y',scales:{x:{reverse:true,min:1,max:6}}}
+   });
+ });
+</script>
+</body>
+</html>
