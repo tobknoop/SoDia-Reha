@@ -2,84 +2,78 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>FCE – Sortieraufgabe mit Studienvergleich und Diagramm</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>FCE – Sortieraufgabe mit Studienvergleich</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
- body {font-family: Arial; max-width: 900px; margin: 40px auto;}
- #itemList li {display:flex;align-items:center;gap:12px;padding:12px;margin:8px 0;background:#f2f2f2;border-radius:6px;cursor:grab;}
- .rank-badge{width:32px;height:32px;border-radius:50%;background:#0078d4;color:white;display:flex;justify-content:center;align-items:center;font-weight:bold;}
- #result{margin-top:30px;padding:15px;background:#eef7ff;border-radius:6px;display:none;}
- canvas{max-width:800px;margin-top:20px;}
+ body{font-family:Arial,Helvetica,sans-serif;max-width:960px;margin:20px auto;padding:0 10px;}
+ #itemList li{display:flex;align-items:center;gap:10px;padding:14px;margin:10px 0;background:#f2f2f2;border-radius:8px;border:1px solid #ccc;cursor:grab;font-size:16px;}
+ .rank-badge{min-width:32px;height:32px;border-radius:50%;background:#0078d4;color:white;display:flex;justify-content:center;align-items:center;font-weight:bold;}
+ #submitBtn{background:#0078d4;color:white;border:0;padding:14px 18px;border-radius:8px;font-size:17px;cursor:pointer;width:100%;margin-top:10px;}
+ #result{display:none;margin-top:20px;background:#f5f7fb;padding:16px;border-radius:8px;}
+ @media(max-width:600px){#itemList li{font-size:14px;gap:8px;padding:12px;} .rank-badge{min-width:28px;height:28px;font-size:14px;} #submitBtn{font-size:16px;}}
+ .cmp-item{background:white;border-left:4px solid #e0e0e0;padding:10px;margin:10px 0;border-radius:6px;font-size:15px;}
+ .muted{font-size:13px;color:#555}
+ canvas{max-width:100%;}
 </style>
 </head>
 <body>
-<h1>Sortieraufgabe und Vergleich mit Studien</h1>
-<p>Ziehen Sie die Elemente per Drag‑and‑Drop in die gewünschte Reihenfolge:</p>
+<h1>Sortieraufgabe</h1>
+<p>Bitte sortieren Sie die Aussagen. Danach sehen Sie Ihr persönliches Ergebnis und den Vergleich mit zwei Studien.</p>
 <ul id="itemList">
- <li draggable="true"><div class='rank-badge'>1</div><span>Erkenntnisse aus der Forschung</span></li>
- <li draggable="true"><div class='rank-badge'>2</div><span>Vorgaben meines Arbeitgebers</span></li>
- <li draggable="true"><div class='rank-badge'>3</div><span>Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team</span></li>
- <li draggable="true"><div class='rank-badge'>4</div><span>Vorgaben des jeweiligen Kostenträgers</span></li>
- <li draggable="true"><div class='rank-badge'>5</div><span>Professionelle Werte</span></li>
- <li draggable="true"><div class='rank-badge'>6</div><span>Interessen und Anliegen der Rehabilitand*innen</span></li>
+ <li draggable="true"><div class="rank-badge">1</div><span>Erkenntnisse aus der Forschung</span></li>
+ <li draggable="true"><div class="rank-badge">2</div><span>Vorgaben meines Arbeitgebers</span></li>
+ <li draggable="true"><div class="rank-badge">3</div><span>Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team</span></li>
+ <li draggable="true"><div class="rank-badge">4</div><span>Vorgaben des jeweiligen Kostenträgers</span></li>
+ <li draggable="true"><div class="rank-badge">5</div><span>Professionelle Werte</span></li>
+ <li draggable="true"><div class="rank-badge">6</div><span>Interessen und Anliegen der Rehabilitand*innen</span></li>
 </ul>
 <button id="submitBtn">Reihenfolge anzeigen</button>
-<div id="result"></div>
-<canvas id="chart"></canvas>
+
+<div id="result">
+ <h3>Ihre Reihenfolge</h3>
+ <div id="userOrder"></div>
+ <canvas id="chart"></canvas>
+ <h3>Einordnung</h3>
+ <div id="comparisons"></div>
+</div>
+
 <script>
- const list=document.getElementById('itemList'); let draggedItem=null;
- function renumber(){[...list.children].forEach((li,i)=>li.querySelector('.rank-badge').textContent=i+1);} 
- list.addEventListener('dragstart',e=>{draggedItem=e.target;e.target.style.opacity=0.5});
- list.addEventListener('dragend',e=>e.target.style.opacity=1);
- list.addEventListener('dragover',e=>{e.preventDefault(); const el=[...list.children].find(c=>{const r=c.getBoundingClientRect();return e.clientY<r.top+r.height/2}); list.insertBefore(draggedItem,el); renumber();});
+const list=document.getElementById('itemList');let dragged=null;
+function renumber(){[...list.children].forEach((li,i)=>li.querySelector('.rank-badge').textContent=i+1)}
+list.addEventListener('dragstart',e=>{dragged=e.target;e.target.style.opacity=.5});
+list.addEventListener('dragend',e=>e.target.style.opacity=1);
+list.addEventListener('dragover',e=>{e.preventDefault();let el=[...list.children].find(c=>{let r=c.getBoundingClientRect();return e.clientY<r.top+r.height/2});list.insertBefore(dragged,el);renumber();});
 
- document.getElementById('submitBtn').addEventListener('click',()=>{
-   const items=[...document.querySelectorAll('#itemList li span')].map(s=>s.textContent.trim());
-   const result=document.getElementById('result'); result.style.display='block';
-   let html='<h3>Ihre Reihenfolge:</h3><ol>'+items.map(i=>`<li>${i}</li>`).join('')+'</ol>';
+const medRank={'Interessen und Anliegen der Rehabilitand*innen':1,'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team':2,'Professionelle Werte':3,'Vorgaben des jeweiligen Kostenträgers':4,'Vorgaben meines Arbeitgebers':5,'Erkenntnisse aus der Forschung':6};
+const berRank={'Interessen und Anliegen der Rehabilitand*innen':1,'Vorgaben des jeweiligen Kostenträgers':2,'Professionelle Werte':3,'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinemTeam':4,'Vorgaben meines Arbeitgebers':5,'Erkenntnisse aus der Forschung':6};
 
-   const medRank={
-     'Interessen und Anliegen der Rehabilitand*innen':1,
-     'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team':2,
-     'Professionelle Werte':3,
-     'Vorgaben des jeweiligen Kostenträgers':4,
-     'Vorgaben meines Arbeitgebers':5,
-     'Erkenntnisse aus der Forschung':6
-   };
-   const berRank={
-     'Interessen und Anliegen der Rehabilitand*innen':1,
-     'Vorgaben des jeweiligen Kostenträgers':2,
-     'Professionelle Werte':3,
-     'Abgestimmtes Vorgehen mit meinen Kolleg*innen/meinem Team':4,
-     'Vorgaben meines Arbeitgebers':5,
-     'Erkenntnisse aus der Forschung':6
-   };
+const rankToScore=r=>7-r;
 
-   html += '<h3>Interpretation:</h3>';
-   html += '<p>Im Folgenden sehen Sie einen Vergleich Ihres persönlichen Rankings mit den Ergebnissen der Studien zur medizinischen und beruflichen Rehabilitation. Die Balken zeigen, wie die einzelnen Aspekte dort bewertet wurden (1 = wichtigste Priorität). Ihr eigenes Ranking wird zusätzlich erläutert.</p>';
+function cmpSentence(item,ur){let mr=medRank[item], br=berRank[item];if(ur===mr&&ur===br)return`Ihre Platzierung (${ur}) deckt sich mit beiden Studien.`;if(ur<mr&&ur<br)return`Sie bewerten dieses Item wichtiger als beide Studien.`;if(ur>mr&&ur>br)return`Sie bewerten dieses Item weniger wichtig als beide Studien.`;return`Sie liegen zwischen den Studien oder stimmen mit einer davon überein.`}
 
-   result.innerHTML = html;
+let chart=null;
+document.getElementById('submitBtn').addEventListener('click',()=>{
+ let items=[...document.querySelectorAll('#itemList li span')].map(s=>s.textContent.trim());
 
-   const userRanks = items.map((i,index)=>({item:i,rank:index+1}));
+ // hide sorting interface for mobile clarity
+ document.getElementById('itemList').style.display='none';
+ document.getElementById('submitBtn').style.display='none';
 
-   const labels = items;
-   const medData = items.map(i=>medRank[i]);
-   const berData = items.map(i=>berRank[i]);
-   const userData = items.map((i,index)=>index+1);
+ document.getElementById('result').style.display='block';
+ document.getElementById('userOrder').innerHTML='<ol>'+items.map(i=>`<li>${i}</li>`).join('')+'</ol>';
 
-   new Chart(document.getElementById('chart'),{
-     type:'bar',
-     data:{
-       labels:labels,
-       datasets:[
-         {label:'Ihre Bewertung',data:userData,backgroundColor:'#0078d4'},
-         {label:'Medizinische Rehabilitation',data:medData,backgroundColor:'#4b0082'},
-         {label:'Berufliche Rehabilitation',data:berData,backgroundColor:'#7dcfe0'}
-       ]
-     },
-     options:{indexAxis:'y',scales:{x:{reverse:true,min:1,max:6}}}
-   });
- });
+ let userData=items.map((_,i)=>rankToScore(i+1));
+ let medData=items.map(it=>rankToScore(medRank[it]));
+ let berData=items.map(it=>rankToScore(berRank[it]));
+
+ if(chart) chart.destroy();
+ chart=new Chart(document.getElementById('chart'),{
+  type:'bar',data:{labels:items,datasets:[{label:'Ihre Bewertung',data:userData,backgroundColor:'#0078d4'},{label:'Medizinische Reha',data:medData,backgroundColor:'#4b0082'},{label:'Berufliche Reha',data:berData,backgroundColor:'#7dcfe0'}]},options:{indexAxis:'y',responsive:true,scales:{x:{min:0,max:6}}}});
+
+ let cmp=document.getElementById('comparisons');cmp.innerHTML='';
+ items.forEach((it,i)=>{cmp.innerHTML+=`<div class='cmp-item'><strong>${it}</strong>${cmpSentence(it,i+1)}<div class='muted'>Ihre Platzierung: ${i+1}</div></div>`});
+});
 </script>
 </body>
 </html>
